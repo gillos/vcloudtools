@@ -129,7 +129,7 @@ def modifyvapp(vmurl,networkname,token):
 	url=vmurl+"/networkConnectionSection/"
 	ct="application/vnd.vmware.vcloud.networkConnectionSection+xml"
 	data="""<?xml version="1.0" encoding="UTF-8"?>
-<NetworkConnectionSection xmlns="http://www.vmware.com/vcloud/v1" xmlns:ovf="http://schemas.dmtf.org/ovf/envelope/1" type="application/vnd.vmware.vcloud.networkConnectionSection+xml" href="%s" ovf:required="false" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://schemas.dmtf.org/ovf/envelope/1 http://schemas.dmtf.org/ovf/envelope/1/dsp8023_1.1.0.xsd http://www.vmware.com/vcloud/v1 http://vcd4.lan.kth.se/api/v1.0/schema/master.xsd">
+<NetworkConnectionSection xmlns="http://www.vmware.com/vcloud/v1" xmlns:ovf="http://schemas.dmtf.org/ovf/envelope/1" type="application/vnd.vmware.vcloud.networkConnectionSection+xml" href="%s" ovf:required="false" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://schemas.dmtf.org/ovf/envelope/1 http://schemas.dmtf.org/ovf/envelope/1/dsp8023_1.1.0.xsd http://www.vmware.com/vcloud/v1 %s/api/v1.0/schema/master.xsd">
     <ovf:Info>Specifies the available VM network connections</ovf:Info>
     <PrimaryNetworkConnectionIndex>0</PrimaryNetworkConnectionIndex>
     <NetworkConnection network="%s">
@@ -138,7 +138,7 @@ def modifyvapp(vmurl,networkname,token):
         <IpAddressAllocationMode>DHCP</IpAddressAllocationMode>
     </NetworkConnection>
     <Link rel="edit" type="application/vnd.vmware.vcloud.networkConnectionSection+xml" href="%s"/>
-	</NetworkConnectionSection>""" % (url,networkname,url)
+	</NetworkConnectionSection>""" % (url,vcdurl,networkname,url)
 	req=urllib2.Request(url,data)
 	req.add_header('Content-Type',ct)
 	req.add_header('x-vcloud-authorization',token)
