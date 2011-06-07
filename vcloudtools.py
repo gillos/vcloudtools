@@ -55,7 +55,7 @@ def getnetworkurl(vdcurl,token):
    
 def getnetworkname(n,token):
 	dom=parseString(getraw(n,token))
-	for e in dom.getElementsByTagName("OrgNetwork")[0].childNodes:
+	for e in dom.getElementsByTagName("OrgNetwork"):
 		if e.nodeType==e.ELEMENT_NODE:
 			return e.getAttribute("name")
 	return ""
@@ -89,14 +89,14 @@ def getorgurl(orgname,token):
             roleurl=e.getAttribute("href")
    return (orgurl,roleurl)
 
-def insttmpl(vdcurl,networkurl,catalogurl,name,token):
+def insttmpl(vdcurl,networkurl,catalogurl,name,nname,token):
    data="""<InstantiateVAppTemplateParams name="%s" xmlns="http://www.vmware.com/vcloud/v1"
 xmlns:ovf="http://schemas.dmtf.org/ovf/envelope/1" > 
 	<Description>%s</Description> 
 	<InstantiationParams>
 	<NetworkConfigSection> 
 		<ovf:Info>Configuration parameters for vAppNetwork</ovf:Info> 
-		<NetworkConfig networkName="LANBB">
+		<NetworkConfig networkName="%s">
 			<Configuration> 
 				<ParentNetwork href="%s"/>
 				<FenceMode>bridged</FenceMode>
@@ -105,7 +105,7 @@ xmlns:ovf="http://schemas.dmtf.org/ovf/envelope/1" >
 	</NetworkConfigSection> 
      </InstantiationParams>
      <Source href="%s"/>
-</InstantiateVAppTemplateParams>""" % (name,name,networkurl,catalogurl)
+</InstantiateVAppTemplateParams>""" % (name,name,nname,networkurl,catalogurl)
    host=vdcurl.split('/')[2]
    vdcid=vdcurl.split('/')[-1]
    url="https://%s/api/v1.0/vdc/%s/action/instantiateVAppTemplate" % (host,vdcid)
@@ -230,7 +230,8 @@ def createvapp(vname,cat='pub_cat',tmpl='kthmoln2'):
 	t=gettemplate(ci,tk,tmpl)
 	v=getvdcurl(ou[0],tk)
 	n=getnetworkurl(v,tk)
-	vapp=insttmpl(v,n,t,vname,tk)
+	nname=getnetworkname(n,tk)
+	vapp=insttmpl(v,n,t,vname,nname,tk)
 	return (vapp,n,tk)
 	
 import time
@@ -252,7 +253,7 @@ if __name__ == '__main__':
 		time.sleep(5)
 		print "cloning...%03s" % (5*i)
 	if modifyvapp(vm,networkname,t):
-#the sleep should be replace by polling the task returned
+#this sleep should be replace by polling the task returned
 		time.sleep(10)
 		if deploy(vapp+'/action/deploy',t):
 			print "started"
