@@ -5,10 +5,10 @@ from urllib2 import HTTPError
 import urllib
 from xml.dom.minidom import parseString
 import json
-
 vcdurl=''
 def gettoken(uname,pw):
-   url=vcdurl+"/api/v1.0/login"
+# 1.5 compat!
+   url=vcdurl+"/api/sessions"
    data=urllib.urlencode({})
    passman = urllib2.HTTPPasswordMgrWithDefaultRealm()
    passman.add_password(None, url, uname,pw)
@@ -16,19 +16,25 @@ def gettoken(uname,pw):
    opener = urllib2.build_opener(authhandler)
    urllib2.install_opener(opener)
    req=urllib2.Request(url,data)
+   req.add_header('Accept','application/*+xml;version=1.5')
    r=urllib2.urlopen(req)
+#   print r.read()
    return r.info()['x-vcloud-authorization']
 
 def getraw(url,token):
+# 1.5 compat!
    req=urllib2.Request(url)
    req.add_header('x-vcloud-authorization',token)
+   req.add_header('Accept','application/*+xml;version=1.5')
    res=urllib2.urlopen(req)
    return res.read()
 
 def postraw(url,ct,data,token,rcode):
+# 1.5 compat!
    req=urllib2.Request(url,data)
    req.add_header('Content-Type',ct)
    req.add_header('x-vcloud-authorization',token)
+   req.add_header('Accept','application/*+xml;version=1.5')
    try:
       r=urllib2.urlopen(req)
    except HTTPError,e:
@@ -78,7 +84,7 @@ def getcatalogitemurl(caturl,name,token):
 
 def getorgurl(orgname,token):
    orgurl="";roleurl=""
-   dom=parseString(getraw(vcdurl+"/api/v1.0/admin",token))
+   dom=parseString(getraw(vcdurl+"/api/admin",token))
    for e in dom.getElementsByTagName("OrganizationReferences")[0].childNodes:
       if e.nodeType==e.ELEMENT_NODE:
          if e.getAttribute("name")==orgname:
@@ -90,32 +96,37 @@ def getorgurl(orgname,token):
    return (orgurl,roleurl)
 
 def insttmpl(vdcurl,networkurl,catalogurl,name,nname,token):
-   data="""<InstantiateVAppTemplateParams name="%s" xmlns="http://www.vmware.com/vcloud/v1"
-xmlns:ovf="http://schemas.dmtf.org/ovf/envelope/1" > 
-	<Description>%s</Description> 
+   data="""<?xml version="1.0" encoding="UTF-8"?>
+   <InstantiateVAppTemplateParams name="%s" xmlns="http://www.vmware.com/vcloud/v1.5"
+   xmlns:ovf="http://schemas.dmtf.org/ovf/envelope/1" 
+   deploy="true"
+   powerOn="true">
+	<Description>%s</Description>
 	<InstantiationParams>
-	<NetworkConfigSection> 
-		<ovf:Info>Configuration parameters for vAppNetwork</ovf:Info> 
+	<NetworkConfigSection>
+		<ovf:Info>Configuration parameters for vAppNetwork</ovf:Info>
 		<NetworkConfig networkName="%s">
-			<Configuration> 
+			<Configuration>
 				<ParentNetwork href="%s"/>
 				<FenceMode>bridged</FenceMode>
 			</Configuration>
 		</NetworkConfig>
-	</NetworkConfigSection> 
+	</NetworkConfigSection>
      </InstantiationParams>
      <Source href="%s"/>
 </InstantiateVAppTemplateParams>""" % (name,name,nname,networkurl,catalogurl)
    host=vdcurl.split('/')[2]
    vdcid=vdcurl.split('/')[-1]
-   url="https://%s/api/v1.0/vdc/%s/action/instantiateVAppTemplate" % (host,vdcid)
+   url="https://%s/api/vdc/%s/action/instantiateVAppTemplate" % (host,vdcid)
    req=urllib2.Request(url,data)
    req.add_header('Content-Type','application/vnd.vmware.vcloud.instantiateVAppTemplateParams+xml')
    req.add_header('x-vcloud-authorization',token)
+   req.add_header('Accept','application/*+xml;version=1.5')
    try:
       r=urllib2.urlopen(req)
    except HTTPError,e:
       print e.code
+      print e.read()
       return ""
    else:
       if r.code==201:
@@ -129,7 +140,7 @@ def modifyvapp(vmurl,networkname,token):
 	url=vmurl+"/networkConnectionSection/"
 	ct="application/vnd.vmware.vcloud.networkConnectionSection+xml"
 	data="""<?xml version="1.0" encoding="UTF-8"?>
-<NetworkConnectionSection xmlns="http://www.vmware.com/vcloud/v1" xmlns:ovf="http://schemas.dmtf.org/ovf/envelope/1" type="application/vnd.vmware.vcloud.networkConnectionSection+xml" href="%s" ovf:required="false" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://schemas.dmtf.org/ovf/envelope/1 http://schemas.dmtf.org/ovf/envelope/1/dsp8023_1.1.0.xsd http://www.vmware.com/vcloud/v1 %s/api/v1.0/schema/master.xsd">
+<NetworkConnectionSection xmlns="http://www.vmware.com/vcloud/v1.5" xmlns:ovf="http://schemas.dmtf.org/ovf/envelope/1" type="application/vnd.vmware.vcloud.networkConnectionSection+xml" href="%s" ovf:required="false" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://schemas.dmtf.org/ovf/envelope/1 http://schemas.dmtf.org/ovf/envelope/1/dsp8023_1.1.0.xsd http://www.vmware.com/vcloud/v1.5 %s/api/v1.0/schema/master.xsd">
     <ovf:Info>Specifies the available VM network connections</ovf:Info>
     <PrimaryNetworkConnectionIndex>0</PrimaryNetworkConnectionIndex>
     <NetworkConnection network="%s">
@@ -141,11 +152,14 @@ def modifyvapp(vmurl,networkname,token):
 	</NetworkConnectionSection>""" % (url,vcdurl,networkname,url)
 	req=urllib2.Request(url,data)
 	req.add_header('Content-Type',ct)
+	req.add_header('Accept','application/*+xml;version=1.5')
 	req.add_header('x-vcloud-authorization',token)
+	
 	req.get_method = lambda: 'PUT'
 	try:
 		r=urllib2.urlopen(req)
 	except HTTPError,e:
+		print e.read()
 		return False
 	else:
 		if r.code==202:
@@ -172,14 +186,23 @@ def gettemplate(url,token,name):
    return ""
    
 def deploy(url,token):
-	data="""<DeployVAppParams powerOn="true" xmlns="http://www.vmware.com/vcloud/v1"/>"""
+	data="""<DeployVAppParams powerOn="true" xmlns="http://www.vmware.com/vcloud/v1.5"/>"""
 	return postraw(url,'application/vnd.vmware.vcloud.deployVAppParams+xml',data,token,202)
 
 def getmacaddr(vm,token):
-	dom=parseString(getraw(vm+"/networkConnectionSection/",token))
+	x=getraw(vm+"/networkConnectionSection/",token)
+	dom=parseString(x)
 	mac=dom.getElementsByTagName("MACAddress")
 	if len(mac)>0:
 		return mac[0].childNodes[0].nodeValue
+	return ""
+	
+def getipaddr(vm,token):
+	x=getraw(vm+"/networkConnectionSection/",token)
+	dom=parseString(x)
+	ip=dom.getElementsByTagName("IpAddress")
+	if len(ip)>0:
+		return ip[0].childNodes[0].nodeValue
 	return ""
 	
 def readpass():
@@ -234,6 +257,14 @@ def createvapp(vname,cat='pub_cat',tmpl='kthmoln2'):
 	vapp=insttmpl(v,n,t,vname,nname,tk)
 	return (vapp,n,tk)
 	
+def resetvm(v,token):
+	return postraw(v+'/power/action/reset','','',token,202)
+	
+def getowner(vappurl,token):
+	dom=parseString(getraw(vappurl+'/owner',token))
+	u=dom.getElementsByTagName("User")[0]
+	return u.getAttribute("name")
+	
 import time
 import sys
 
@@ -244,6 +275,9 @@ if __name__ == '__main__':
 		print "usage..."
 		sys.exit()
 	(vapp,n,t)=createvapp(vname)
+	if vapp=='': 
+		print "creating vapp failed..."
+		sys.exit()
 	networkname=getnetworkname(n,t)
 	vm=""
 	i=0
@@ -251,14 +285,23 @@ if __name__ == '__main__':
 		i+=1
 		vm=getvm(vapp,t)
 		time.sleep(5)
-		print "cloning...%03s" % (5*i)
-	if modifyvapp(vm,networkname,t):
+		sys.stdout.write("\rcloning %03ss" % (i*5))
+		sys.stdout.flush()
+	print "\nwaiting  15s"
+	time.sleep(15)
 #this sleep should be replace by polling the task returned
-		time.sleep(10)
+	if modifyvapp(vm,networkname,t):
 		if deploy(vapp+'/action/deploy',t):
-			print "started"
-			print getmacaddr(vm,t)
+			ip=""
+			i=0
+			while ip=="":
+				i+=1
+				time.sleep(5)
+				sys.stdout.write("\rwaiting for ip address %02ss" % (i*5))
+				sys.stdout.flush()
+				ip=getipaddr(vm,t)
+			print "\n%s %s %s" % (ip,getmacaddr(vm,t),getowner(vapp,t))
 		else:
-			print "fail!"
+			print "fail!1"
 	else:
-		print "fail!"
+		print "fail!2"
