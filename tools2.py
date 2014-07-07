@@ -32,7 +32,9 @@ def getcapacity(vdcurl,token):
 	return {e.parentNode.tagName:e.childNodes[0].data for e in dom.getElementsByTagName("Allocated")}
 
 url='https://www.cloud.kth.se/api/sessions'
-r=post(url,auth=HTTPBasicAuth('ja@kth.se@kthlan-org', 'xx'),headers={'Accept':'application/*+xml;version=1.5'})
+with open('.p') as f:
+	pw=f.read().strip()
+r=post(url,auth=HTTPBasicAuth('ja@kth.se@kthlan-org', pw),headers={'Accept':'application/*+xml;version=1.5'})
 token=r.headers['x-vcloud-authorization']
 (orgurl,roleurl)=getorgurl('KTHLAN-org',token)
 vdcs=getvdcurl(orgurl,token)
