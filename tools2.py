@@ -7,12 +7,11 @@ def getraw(url,token):
 	return r.text
 
 def getorgurl(orgname,token):
-	orgurl="";roleurl=""
+	orgurl=[];roleurl=""
 	dom=parseString(getraw('https://www.cloud.kth.se/api/admin',token))
 	for e in dom.getElementsByTagName("OrganizationReferences")[0].childNodes:
 		if e.nodeType==e.ELEMENT_NODE:
-			if e.getAttribute("name")==orgname:
-				orgurl=e.getAttribute("href")
+			orgurl.append(e.getAttribute("href"))
 	for e in dom.getElementsByTagName("RoleReferences")[0].childNodes:
 		if e.nodeType==e.ELEMENT_NODE:
 			if e.getAttribute("name")=="Organization Administrator":
@@ -36,7 +35,8 @@ if __name__ == "__main__":
 	r=post(url,auth=HTTPBasicAuth(u, pw),headers={'Accept':'application/*+xml;version=1.5'})
 	token=r.headers['x-vcloud-authorization']
 	(orgurl,roleurl)=getorgurl(org,token)
-	vdcs=getvdcurl(orgurl,token)
-	for (vdc,u) in vdcs.items():
-		print vdc,getcapacity(u,token)
+	for o in orgurl: 
+		vdcs=getvdcurl(o,token)
+		for (vdc,u) in vdcs.items():
+			print vdc,getcapacity(u,token)
 
