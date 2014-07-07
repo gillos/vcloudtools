@@ -28,13 +28,15 @@ def getcapacity(vdcurl,token):
 	#print {e.parentNode.tagName:e.childNodes[0].data for e in dom.getElementsByTagName("Units")}
 	return {e.parentNode.tagName:int(e.childNodes[0].data) for e in dom.getElementsByTagName("Allocated")}
 
-url='https://www.cloud.kth.se/api/sessions'
-with open('.p') as f:
-	pw=f.read().strip()
-r=post(url,auth=HTTPBasicAuth('ja@kth.se@kthlan-org', pw),headers={'Accept':'application/*+xml;version=1.5'})
-token=r.headers['x-vcloud-authorization']
-(orgurl,roleurl)=getorgurl('KTHLAN-org',token)
-vdcs=getvdcurl(orgurl,token)
-for (vdc,u) in vdcs.items():
-	print vdc,getcapacity(u,token)
+if __name__ == "__main__":
+	url='https://www.cloud.kth.se/api/sessions'
+	with open('.c') as f:
+		(u,pw)=f.read().strip().split(':')
+		org=u.split('@')[-1]
+	r=post(url,auth=HTTPBasicAuth(u, pw),headers={'Accept':'application/*+xml;version=1.5'})
+	token=r.headers['x-vcloud-authorization']
+	(orgurl,roleurl)=getorgurl(org,token)
+	vdcs=getvdcurl(orgurl,token)
+	for (vdc,u) in vdcs.items():
+		print vdc,getcapacity(u,token)
 
