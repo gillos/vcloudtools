@@ -20,16 +20,13 @@ def getorgurl(orgname,token):
 	return (orgurl,roleurl)
 
 def getvdcurl(orgurl,token):
-	d={}
 	dom=parseString(getraw(orgurl,token))
-	for e in dom.getElementsByTagName("Vdcs")[0].childNodes:
-		if e.nodeType==e.ELEMENT_NODE:
-			d[e.getAttribute("name")]=e.getAttribute("href")
-	return d
+	return {e.getAttribute("name"):e.getAttribute("href") for e in dom.getElementsByTagName("Vdcs")[0].childNodes if e.nodeType==e.ELEMENT_NODE}
 
 def getcapacity(vdcurl,token):
 	dom=parseString(getraw(vdcurl,token))
-	return {e.parentNode.tagName:e.childNodes[0].data for e in dom.getElementsByTagName("Allocated")}
+	#print {e.parentNode.tagName:e.childNodes[0].data for e in dom.getElementsByTagName("Units")}
+	return {e.parentNode.tagName:int(e.childNodes[0].data) for e in dom.getElementsByTagName("Allocated")}
 
 url='https://www.cloud.kth.se/api/sessions'
 with open('.p') as f:
