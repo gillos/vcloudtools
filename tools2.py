@@ -22,6 +22,10 @@ def getvdcurl(orgurl,token):
 	dom=parseString(getraw(orgurl,token))
 	return {e.getAttribute("name"):e.getAttribute("href") for e in dom.getElementsByTagName("Vdcs")[0].childNodes if e.nodeType==e.ELEMENT_NODE}
 
+def getdesc(vdcurl,token):
+	dom=parseString(getraw(vdcurl,token))
+	return "".join([e.data for e in dom.getElementsByTagName("Description")[0].childNodes if e])
+
 def getcapacity(vdcurl,token):
 	dom=parseString(getraw(vdcurl,token))
 	#print {e.parentNode.tagName:e.childNodes[0].data for e in dom.getElementsByTagName("Units")}
@@ -38,5 +42,5 @@ if __name__ == "__main__":
 	for o in orgurl: 
 		vdcs=getvdcurl(o,token)
 		for (vdc,u) in vdcs.items():
-			print vdc,getcapacity(u,token)
+			print vdc,";".join(["%s:%s" % x for x in sorted(getcapacity(u,token).items())]), getdesc(u,token)
 
