@@ -1,6 +1,7 @@
 from requests import *
 from requests.auth import HTTPBasicAuth
 from xml.dom.minidom import parseString
+import datetime
 
 def getraw(url,token):
 	r=get(url,headers={'x-vcloud-authorization':token,'Accept':'application/*+xml;version=1.5'})
@@ -36,5 +37,5 @@ token=r.headers['x-vcloud-authorization']
 (orgurl,roleurl)=getorgurl('KTHLAN-org',token)
 vdcs=getvdcurl(orgurl,token)
 for (vdc,u) in vdcs.items():
-	print vdc,getcapacity(u,token)
+	print datetime.datetime.now().strftime("%Y%m%d"),vdc,getcapacity(u,token)
 
