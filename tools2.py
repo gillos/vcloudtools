@@ -8,12 +8,11 @@ def getraw(url,token):
 	return r.text
 
 def getorgurl(orgname,token):
-	orgurl="";roleurl=""
+	orgurl=[];roleurl=""
 	dom=parseString(getraw('https://www.cloud.kth.se/api/admin',token))
 	for e in dom.getElementsByTagName("OrganizationReferences")[0].childNodes:
 		if e.nodeType==e.ELEMENT_NODE:
-			if e.getAttribute("name")==orgname:
-				orgurl=e.getAttribute("href")
+			orgurl.append(e.getAttribute("href"))
 	for e in dom.getElementsByTagName("RoleReferences")[0].childNodes:
 		if e.nodeType==e.ELEMENT_NODE:
 			if e.getAttribute("name")=="Organization Administrator":
@@ -24,18 +23,24 @@ def getvdcurl(orgurl,token):
 	dom=parseString(getraw(orgurl,token))
 	return {e.getAttribute("name"):e.getAttribute("href") for e in dom.getElementsByTagName("Vdcs")[0].childNodes if e.nodeType==e.ELEMENT_NODE}
 
+def getdesc(vdcurl,token):
+	dom=parseString(getraw(vdcurl,token))
+	return "".join([e.data for e in dom.getElementsByTagName("Description")[0].childNodes if e])
+
 def getcapacity(vdcurl,token):
 	dom=parseString(getraw(vdcurl,token))
 	#print {e.parentNode.tagName:e.childNodes[0].data for e in dom.getElementsByTagName("Units")}
 	return {e.parentNode.tagName:int(e.childNodes[0].data) for e in dom.getElementsByTagName("Allocated")}
 
-url='https://www.cloud.kth.se/api/sessions'
-with open('.p') as f:
-	pw=f.read().strip()
-r=post(url,auth=HTTPBasicAuth('ja@kth.se@kthlan-org', pw),headers={'Accept':'application/*+xml;version=1.5'})
-token=r.headers['x-vcloud-authorization']
-(orgurl,roleurl)=getorgurl('KTHLAN-org',token)
-vdcs=getvdcurl(orgurl,token)
-for (vdc,u) in vdcs.items():
-	print datetime.datetime.now().strftime("%Y%m%d"),vdc,getcapacity(u,token)
-
+if __name__ == "__main__":
+	url='https://www.cloud.kth.se/api/sessions'
+	with open('.c') as f:
+		(u,pw)=f.read().strip().split(':')
+		org=u.split('@')[-1]
+	r=post(url,auth=HTTPBasicAuth(u, pw),headers={'Accept':'application/*+xml;version=1.5'})
+	token=r.headers['x-vcloud-authorization']
+	(orgurl,roleurl)=getorgurl(org,token)
+	for o in orgurl: 
+		vdcs=getvdcurl(o,token)
+		for (vdc,u) in vdcs.items():
+			print datetime.datetime.now().strftime("%Y%m%d"),vdc,";".join(["%s:%s" % x for x in sorted(getcapacity(u,token).items())]), getdesc(u,token)
